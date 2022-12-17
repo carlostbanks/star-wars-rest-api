@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Characters, Planets, Favorites
 #from models import Person
 
 app = Flask(__name__)
@@ -25,6 +25,86 @@ MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+
+user = [
+    {
+        'id' : 1,
+        'name' : 'Joe Shmoe',
+        'email' : 'JBoogie@aol.com',      
+    },    
+
+    {
+        'id' : 2,
+        'name' : 'Jane Doe',
+        'email' : 'JDoeADeer95@gmail.com',   
+    }
+]
+
+characters = [
+    {
+        'id': 1,
+        'name': 'Luke Skywalker',
+        'planet_from': 'Tatooine',
+        'birth_year': '19 BBY'
+    },
+
+    {
+        'id': 2,
+        'name': 'Darth Vader',
+        'planet_from': 'Tatooine',
+        'birth_year': '41 BBY'
+    }
+]
+
+planets = [
+    {
+        'planet_id': 1,
+        'name': 'Tatooine',
+        'diameter': '10465',
+        'population': '200000',
+        'climate': 'arid',
+    },
+
+    {
+       'id': 2,
+       'name': 'Naboo', 
+       'diameter': '10465',
+       'population': '4500000000',
+       'climate': 'temperate',
+    }
+]
+
+vehicles = [
+    {
+        'vehicle_id': '001' ,
+        'name': 'Sand Crawler',
+        'pilot': 'Digger Crawler',
+    },
+
+    {
+        'vehicle_id': '002',
+        'name': 'T-16 skyhopper',
+        'pilot': '1',
+    }
+]
+
+favorites = [
+    {
+        'date_added': 12152022,
+        'user_id': 1,
+        'favorite_characters': 
+        {
+            'name': 'Darth Vader'
+        },
+        'favorite_planets': 
+        {
+            'name': 'Naboo'
+        },
+        'favorite_vehicles': 
+        {
+        },
+    }
+]
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -44,6 +124,69 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+@app.route('/characters', methods=['GET'])
+def get_characters():
+    json_text = jsonify(characters)
+    return json_text, 200
+
+@app.route('/planets' , methods=['GET'])
+def get_planets():
+    json_text = jsonify(planets)
+    return json_text, 200
+
+@app.route('/favorites' , methods=['GET'])
+def get_favorites():
+    json_text = jsonify(favorites)
+    return json_text, 200
+
+@app.route('/vehicles' , methods=['GET'])
+def get_vehicles():
+    json_text = jsonify(vehicles)
+    return json_text, 200
+
+@app.route('/characters/<int:id>', methods=['GET'])
+def get_single_character(id):
+    single_character = characters[id]
+    return jsonify(single_character), 200
+
+@app.route('/vehicles/<int:id>', methods=['GET'])
+def get_single_vehicle(id):
+    single_vehicle = vehicles[id]
+    return jsonify(single_vehicle), 200
+
+@app.route('/users/<int:id>/favorites/', methods=['GET'])
+def get_all_favorites(id):
+    user = User.query.get(id)
+    user.to_dict()
+    user_favorites = {
+        "favorite_characters": user.favorite_characters,
+        "favorite_planets": user.favorite_planets,
+        "favorite_vehicles": user.favorite_vehicles
+    }
+    return jsonify(user_favorites), 200
+
+@app.route('users/<int:id>/favorites/character/<str:name>', methods=['POST', 'DELETE'])
+def add_to_favorite_characters(id, name):
+    body = request.get_json()
+    if request.method == 'POST':
+        user = User.query.get(id)
+        character = Characters.query.get(name)
+        user.favorite_characters.append(character)
+        db.session.commit()
+        return "Favorite character has been added", 200
+    if request.method == 'DELETE':
+        user = User.query.get(id)
+        character = Characters.query.get(name)
+        user.favorite_characters.remove(character)
+        db.session.commit()
+        return "Character has been deleted from favorites", 200
+    return "POST or DELETE requests were invalid", 404
+
+
+
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
