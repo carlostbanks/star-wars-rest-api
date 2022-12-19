@@ -166,7 +166,7 @@ def get_all_favorites(id):
     }
     return jsonify(user_favorites), 200
 
-@app.route('users/<int:id>/favorites/character/<str:name>', methods=['POST', 'DELETE'])
+@app.route('/users/<int:id>/favorites/character/<int:name>', methods=['POST', 'DELETE'])
 def add_to_favorite_characters(id, name):
     body = request.get_json()
     if request.method == 'POST':
