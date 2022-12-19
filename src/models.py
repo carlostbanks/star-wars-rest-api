@@ -8,16 +8,32 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(80), unique=False, nullable=False)
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
+    characterFavorites = db.relationship(Characters,
+                            secondary = characterFavorites,
+                            lazy = 'subquery',
+                            backref = db.backref('users', lazy=True))
+    planetFavorites = db.relationship(Planets,
+                            secondary = planetFavorites,
+                            lazy = 'subquery',
+                            backref = db.backref('users', lazy=True))
 
-    def __repr__(self):
-        return '<User %r>' % self.username
 
     def serialize(self):
         return {
             "id": self.id,
             "email": self.email,
             # do not serialize the password, its a security breach
+            "characterFavorites": self.get_characterFavorites(),
+            "planetFavorites": self.get_planetFavorites()
         }
+
+    def get_characterFavorites(self):
+        return list(map(lambda index: index.serialize(), self.characterFavorites))
+
+    def get_planetFavorites(self):
+        return list(map(lambda index: index.serialize(), self.planetFavorites))
+
+
 
 class Characters(db.Model):
     __tablename__ = 'characters'
@@ -25,10 +41,6 @@ class Characters(db.Model):
     name = db.Column(db.String(120) , unique=True , nullable=False) #unique = only 1 character w/ the name, nullable =cannot be blank
     planet_from = db.Column(db.String(120), unique=True, nullable=False)
     birth_year = db.Column(db.String)
-
-#tells python how to print to the console under character
-    def __repr__(self):
-        return '<Character %r>' % self.name
         
 
 #serialize = every single time we add item to the column, we are going to add the id and name to the columns.
@@ -49,9 +61,6 @@ class Planets(db.Model):
     population = db.Column(db.Integer)
     climate = db.Column(db.String(120))
     
-    def __repr__(self):
-        return '<Planets %r>' % self.name
-
     def serialize(self):
         return {
             'planet_id': self.planet_id,
@@ -61,35 +70,22 @@ class Planets(db.Model):
             'climate': self.climate,
         }
 
-class Favorites(db.Model):
-    __tablename__ = 'favorites'
-    date_added = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
-    favorite_characters = db.Column(db.Integer, db.ForeignKey('characters.name'))
-    favorite_planets = db.Column(db.Integer, db.ForeignKey('planets.name'))
-    favorite_vehicles = db.Column(db.Integer, db.ForeignKey('vehicles.name'))
+characterFavorites = db.Table("characterFavorites",
+    db.Column('user_id', db.Integer, db.ForeignKey("users.id"), primary_key=True),
+    db.Column('character_name', db.String(250), db.ForeignKey("characters.name"), primary_key=True),
+)
 
-    def __repr__(self):
-        return '<Favorites %r>' % self.name
+planetFavorites = db.Table("planetFavorites",
+    db.Column('user_id', db.Integer, db.ForeignKey("users.id"), primary_key=True),
+    db.Column('planet_name', db.String(250), db.ForeignKey("planets.name"), primary_key=True),
+)
 
-
-    def serialize(self):
-        return {
-            'date_added': self.user_id,
-            'user_id': self.user_id,
-            'favorite_characters': self.favorite_characters,
-            'favorite_planets': self.favorite_planets,
-            'favorite_vehicles': self.favorite_vehicles
-        }
 
 class Vehicles(db.Model):
     __tablename__ = 'vehicles'
     pilot = db.Column(db.String(250))
     vehicle_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(250))
-
-    def __repr__(self):
-        return '<Vehicles %r>' % self.name
 
     def serialize(self):
         return {
